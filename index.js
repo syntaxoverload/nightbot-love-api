@@ -41,3 +41,7 @@ app.get("/love", async (req, res) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Running on ${port}`));
+
+app.get("/", (req, res) => {
+  res.send("Nightbot !Love API is running 🤖");
+});
