@@ -55,7 +55,7 @@ app.get("/lovestats", async (req, res) => {
   try {
     const response = await fetch(sheetUrl);
     const text = await response.text();
-    res.send(text);
+    res.send(text);  // Send the Google Script's response back to Nightbot
   } catch (err) {
     res.send("Could not fetch stats. lepF");
   }
