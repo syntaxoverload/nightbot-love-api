@@ -45,3 +45,19 @@ app.listen(port, () => console.log(`Running on ${port}`));
 app.get("/", (req, res) => {
   res.send("Nightbot !Love API is running 🤖");
 });
+
+app.get("/lovestats", async (req, res) => {
+  const user = req.query.user;
+  if (!user) return res.status(400).send("Missing ?user= parameter");
+
+  const sheetUrl = `${GOOGLE_SHEETS_URL}?user=${encodeURIComponent(user)}`;
+
+  try {
+    const response = await fetch(sheetUrl);
+    const text = await response.text();
+    res.send(text);
+  } catch (err) {
+    res.send("Could not fetch stats. lepF");
+  }
+});
+
