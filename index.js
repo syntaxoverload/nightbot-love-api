@@ -35,7 +35,7 @@ app.get("/love", async (req, res) => {
     headers: { "Content-Type": "application/json" },
   });
 
-  const message = `${user} loves ${loved} lepFLIRT, marries ${married} lepLOVE, and kills ${killed} lepW lepG`;
+  const message = `${user} loves ${loved} lepFLIRT marries ${married} lepLOVE and kills ${killed} lepW lepG`;
   res.send(message);
 });
 
