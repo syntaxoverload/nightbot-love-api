@@ -49,10 +49,10 @@ app.get("/", (req, res) => {
 // /lovestats route to fetch data from Google Sheets via Google Apps Script
 app.get("/lovestats", async (req, res) => {
   const user = req.query.user?.replace(/^@/, "").toLowerCase(); // Remove the '@' if included
-  const actor = req.query.actor?.toLowerCase();  // Optional actor for customized response
+  const actor = req.query.actor?.toLowerCase() || user;  // Default to the 'user' if actor is not provided
 
   if (!user || user.trim() === "") {
-    return res.status(200).send(`${actor || 'You'}, please provide a name to check stats! lepSTARE`);
+    return res.status(200).send(`${actor}, please provide a name to check stats! lepSTARE`);
   }
 
   try {
