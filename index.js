@@ -2,42 +2,70 @@ const express = require("express");
 const fetch = require("node-fetch");
 const app = express();
 
-// Google Sheets configuration
-const GOOGLE_SHEET_ID = '1Ww5C1YaCT-9RJrU4QpJdCasNePqloJUgjzuUHZhmxm4';
-const SHEET_NAME = 'Love Stat Tracker'; // Make sure this is the correct sheet name
+const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxdCJfGLxKmvb0WVjEis4hNEeyTyHH2pF4DeAt2R4v_TYP9s_K75bao4SeDJy3ADS5wcw/exec";
+const MODERATOR_ID = "56369189"; // your Twitch user ID
 
-// Express route for !lovestats
-app.get("/lovestats", async (req, res) => {
-  const username = req.query.user?.replace(/^@/, "").toLowerCase(); // Remove '@' if included
+app.get("/love", async (req, res) => {
+  const user = req.query.user || "Someone";
+  const channel = req.query.channel;
 
-  if (!username || username.trim() === "") {
-    return res.status(400).send("Please provide a username to check stats.");
+  if (!channel) {
+    return res.status(400).send("Missing channel");
   }
 
-  // Fetching data from Google Sheets
-  try {
-    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/${SHEET_NAME}!A2:D?key=YOUR_GOOGLE_API_KEY`);
-    const data = await response.json();
-
-    if (!data.values || data.values.length === 0) {
-      return res.status(200).send(`${username} has not been caught yet.`);
+  const getRandomChatter = async () => {
+    const apiUrl = `https://commands.garretcharp.com/twitch/chatter/${channel}?moderatorId=${MODERATOR_ID}`;
+    try {
+      const response = await fetch(apiUrl);
+      return (await response.text()).trim();
+    } catch {
+      return "Unknown";
     }
+  };
 
-    const userStats = data.values.find((row) => row[0].toLowerCase() === username);
+  const loved = await getRandomChatter();
+  const married = await getRandomChatter();
+  const killed = await getRandomChatter();
 
-    if (!userStats) {
-      return res.status(200).send(`${username} has not been caught yet.`);
-    }
+  // Send to Google Sheets
+  fetch(GOOGLE_SHEETS_URL, {
+    method: "POST",
+    body: JSON.stringify({ loved, married, killed }),
+    headers: { "Content-Type": "application/json" },
+  });
 
-    const [_, loved, married, killed] = userStats;
-    res.status(200).send(`${username} has been loved ${loved || 0} times, married ${married || 0} times, and killed ${killed || 0} times.`);
-  } catch (error) {
-    console.error("Error fetching stats:", error);
-    res.status(500).send("There was an error retrieving the stats.");
-  }
+  const message = `${user} loves ${loved} lepFLIRT, marries ${married} lepLOVE, and kills ${killed} lepW lepG`;
+  res.send(message);
 });
 
 const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`Running on ${port}`));
+
+app.get("/", (req, res) => {
+  res.send("Nightbot !Love API is running 🤖");
+});
+
+app.get("/lovestats", async (req, res) => {
+  const user = req.query.user?.replace(/^@/, "").toLowerCase();
+  const actor = req.query.actor?.toLowerCase();
+
+  if (!user || user.trim() === "") {
+    return res.status(200).send(`${actor}, please provide a name to check stats! lepSTARE`);
+  }
+
+  try {
+    // Read from Google Sheets using the Apps Script URL
+    const response = await fetch(`${GOOGLE_SHEETS_URL}?user=${user}`);
+    const data = await response.text();
+
+    // Return the response from Google Apps Script (Stats message)
+    return res.status(200).send(data);
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    return res.status(500).send("Something went wrong retrieving stats.");
+  }
+});
+
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`Server listening on port ${port}`);
 });
