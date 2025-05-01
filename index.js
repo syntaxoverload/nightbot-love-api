@@ -1,10 +1,15 @@
 // index.js
 const express = require("express");
 const fetch = require("node-fetch");
+const { google } = require('googleapis');
 const app = express();
 
-const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxdCJfGLxKmvb0WVjEis4hNEeyTyHH2pF4DeAt2R4v_TYP9s_K75bao4SeDJy3ADS5wcw/exec";
-const MODERATOR_ID = "56369189"; // your Twitch user ID
+const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxdCJfGLxKmvb0WVjEis4hNEeyTyHH2pF4DeAt2R4v_TYP9s_K75bao4SeDJy3ADS5wcw/exec";  // Your Apps Script URL
+const MODERATOR_ID = "56369189";  // your Twitch user ID
+
+const sheets = google.sheets({ version: 'v4' });
+const SPREADSHEET_ID = '1Ww5C1YaCT-9RJrU4QpJdCasNePqloJUgjzuUHZhmxm4';  // Your Spreadsheet ID
+const SHEET_NAME = 'Love Stat Tracker';  // Your Sheet Name
 
 app.get("/love", async (req, res) => {
   const user = req.query.user || "Someone";
@@ -28,7 +33,7 @@ app.get("/love", async (req, res) => {
   const married = await getRandomChatter();
   const killed = await getRandomChatter();
 
-  // Send to Google Sheets (via Google Apps Script URL)
+  // Send to Google Sheets
   fetch(GOOGLE_SHEETS_URL, {
     method: "POST",
     body: JSON.stringify({ loved, married, killed }),
@@ -39,45 +44,42 @@ app.get("/love", async (req, res) => {
   res.send(message);
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Running on ${port}`));
-
-app.get("/", (req, res) => {
-  res.send("Nightbot !Love API is running 🤖");
-});
-
-// /lovestats route to fetch data from Google Sheets via Google Apps Script
 app.get("/lovestats", async (req, res) => {
-  const user = req.query.user?.replace(/^@/, "").toLowerCase(); // Remove the '@' if included
-  const actor = req.query.actor?.toLowerCase() || user;  // Default to the 'user' if actor is not provided
+  const user = req.query.user?.replace(/^@/, "").toLowerCase();
+  const actor = req.query.actor?.toLowerCase();
 
   if (!user || user.trim() === "") {
     return res.status(200).send(`${actor}, please provide a name to check stats! lepSTARE`);
   }
 
   try {
-    // Fetch data from Google Sheets (Google Apps Script URL)
-    const response = await fetch(`${GOOGLE_SHEETS_URL}?user=${user}`);
-    
-    // Check if the response is valid JSON
-    const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      const text = await response.text();  // Read the response as text if it's not JSON
-      return res.status(500).send(`Error: The response from the Google Sheets API is not in JSON format. Received: ${text}`);
-    }
+    // Read the whole sheet
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAME}!A2:D`, // Assumes headers are in row 1
+    });
 
-    // Parse the valid JSON response
-    const data = await response.json();
-
-    if (!data || data.error) {
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
       return res.status(200).send(`${user} has not been caught yet. lepHANDS`);
     }
 
-    const { loved, married, killed } = data;
+    const found = rows.find(r => r[0]?.toLowerCase() === user);
+
+    if (!found) {
+      return res.status(200).send(`${user} has not been caught yet. lepHANDS`);
+    }
+
+    const [_, loved, married, killed] = found;
 
     return res.status(200).send(`${user} has been loved lepFLIRT ${loved || 0} times, married lepLOVE ${married || 0} times, and killed lepW lepG ${killed || 0} times.`);
   } catch (error) {
     console.error("Error fetching stats:", error);
     return res.status(500).send("Something went wrong retrieving stats.");
   }
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
 });
