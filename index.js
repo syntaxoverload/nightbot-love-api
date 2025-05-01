@@ -58,6 +58,15 @@ app.get("/lovestats", async (req, res) => {
   try {
     // Fetch data from Google Sheets (Google Apps Script URL)
     const response = await fetch(`${GOOGLE_SHEETS_URL}?user=${user}`);
+    
+    // Check if the response is valid JSON
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();  // Read the response as text if it's not JSON
+      return res.status(500).send(`Error: The response from the Google Sheets API is not in JSON format. Received: ${text}`);
+    }
+
+    // Parse the valid JSON response
     const data = await response.json();
 
     if (!data || data.error) {
