@@ -1,3 +1,4 @@
+// index.js
 const express = require("express");
 const fetch = require("node-fetch");
 const app = express();
@@ -46,26 +47,16 @@ app.get("/", (req, res) => {
 });
 
 app.get("/lovestats", async (req, res) => {
-  const user = req.query.user?.replace(/^@/, "").toLowerCase();
-  const actor = req.query.actor?.toLowerCase();
+  const user = req.query.user;
+  if (!user) return res.status(400).send("Missing ?user= parameter");
 
-  if (!user || user.trim() === "") {
-    return res.status(200).send(`${actor}, please provide a name to check stats! lepSTARE`);
-  }
+  const sheetUrl = `${GOOGLE_SHEETS_URL}?user=${encodeURIComponent(user)}`;
 
   try {
-    // Read from Google Sheets using the Apps Script URL
-    const response = await fetch(`${GOOGLE_SHEETS_URL}?user=${user}`);
-    const data = await response.text();
-
-    // Return the response from Google Apps Script (Stats message)
-    return res.status(200).send(data);
-  } catch (error) {
-    console.error("Error fetching stats:", error);
-    return res.status(500).send("Something went wrong retrieving stats.");
+    const response = await fetch(sheetUrl);
+    const text = await response.text();
+    res.send(text);  // Send the Google Script's response back to Nightbot
+  } catch (err) {
+    res.send("Could not fetch stats. lepF");
   }
-});
-
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
 });
