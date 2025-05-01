@@ -1,7 +1,6 @@
 // index.js
 const express = require("express");
 const fetch = require("node-fetch");
-const { google } = require('googleapis');
 const app = express();
 
 const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxdCJfGLxKmvb0WVjEis4hNEeyTyHH2pF4DeAt2R4v_TYP9s_K75bao4SeDJy3ADS5wcw/exec";  // Your Apps Script URL
