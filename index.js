@@ -5,7 +5,6 @@ const app = express();
 const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxdCJfGLxKmvb0WVjEis4hNEeyTyHH2pF4DeAt2R4v_TYP9s_K75bao4SeDJy3ADS5wcw/exec";
 const MODERATOR_ID = "56369189"; // your Twitch user ID
 
-// !love command
 app.get("/love", async (req, res) => {
   const user = req.query.user || "Someone";
   const channel = req.query.channel;
@@ -15,44 +14,39 @@ app.get("/love", async (req, res) => {
     const apiUrl = `https://commands.garretcharp.com/twitch/chatter/${channel}?moderatorId=${MODERATOR_ID}`;
     try {
       const response = await fetch(apiUrl);
-      return (await response.text()).trim();
+      return (await response.text()).trim().toLowerCase();
     } catch {
-      return "Unknown";
+      return "unknown";
     }
   };
 
   const loved = await getRandomChatter();
   const married = await getRandomChatter();
   const killed = await getRandomChatter();
+  const actualUser = user.toLowerCase();
 
-  // Log the data being sent to Google Sheets
-  console.log("Sending data to Google Sheets:", { loved, married, killed });
+  const postBody = { user: actualUser, loved, married, killed };
 
-  // Send to Google Sheets
+  console.log("Sending data to Google Sheets:", postBody);
+
   try {
     const response = await fetch(GOOGLE_SHEETS_URL, {
       method: "POST",
-      body: JSON.stringify({ loved, married, killed }),
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(postBody),
     });
-
-    // Log the response from Google Sheets
-    const responseText = await response.text();
-    console.log("Google Sheets Response:", responseText);
-  } catch (error) {
-    console.log("Error sending data to Google Sheets:", error);
+    const text = await response.text();
+    console.log("Google Sheets Response:", text);
+  } catch (err) {
+    console.error("Failed to POST to Google Sheets", err);
   }
 
-  const message = `${user} loves ${loved} lepFLIRT marries ${married} lepLOVE and kills ${killed} lepW lepG`;
-  res.send(message);
+  res.send(`${user} loves ${loved} lepFLIRT marries ${married} lepLOVE and kills ${killed} lepW lepG`);
 });
 
-
-// !lovestats
 app.get("/lovestats", async (req, res) => {
-  const queryUser = req.query.user || req.query.caller || "";
-  const user = queryUser.toLowerCase().replace(/^@/, "");
-  const url = `${GOOGLE_SHEETS_URL}?user=${encodeURIComponent(user)}`;
+  const user = req.query.user || req.query.caller || "unknown";
+  const url = `${GOOGLE_SHEETS_URL}?user=${encodeURIComponent(user.toLowerCase())}`;
 
   try {
     const response = await fetch(url);
@@ -63,11 +57,9 @@ app.get("/lovestats", async (req, res) => {
   }
 });
 
-// !bodycount
 app.get("/bodycount", async (req, res) => {
-  const queryUser = req.query.bodycount || req.query.user || req.query.caller || "";
-  const user = queryUser.toLowerCase().replace(/^@/, "");
-  const url = `${GOOGLE_SHEETS_URL}?bodycount=${encodeURIComponent(user)}`;
+  const user = req.query.user || req.query.caller || "unknown";
+  const url = `${GOOGLE_SHEETS_URL}?bodycount=${encodeURIComponent(user.toLowerCase())}`;
 
   try {
     const response = await fetch(url);
@@ -78,7 +70,6 @@ app.get("/bodycount", async (req, res) => {
   }
 });
 
-// Leaderboards
 const leaderboardHandler = (type) => async (req, res) => {
   const n = Math.min(parseInt(req.query.n) || 1, 5);
   const url = `${GOOGLE_SHEETS_URL}?leaderboard=${type}&n=${n}`;
@@ -96,11 +87,9 @@ app.get("/toplove", leaderboardHandler("love"));
 app.get("/topmarry", leaderboardHandler("marry"));
 app.get("/topkills", leaderboardHandler("kill"));
 
-// Root check
 app.get("/", (req, res) => {
   res.send("Nightbot !Love API is running 🤖");
 });
 
-// Start server
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Running on ${port}`));
+app.listen(port, () => console.log(`Server running on port ${port}`));
