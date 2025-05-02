@@ -3,7 +3,7 @@ const fetch = require("node-fetch");
 const app = express();
 
 const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxdCJfGLxKmvb0WVjEis4hNEeyTyHH2pF4DeAt2R4v_TYP9s_K75bao4SeDJy3ADS5wcw/exec";
-const MODERATOR_ID = "56369189"; // your Twitch user ID
+const MODERATOR_ID = "56369189";
 
 app.get("/love", async (req, res) => {
   const user = req.query.user || "Someone";
@@ -27,16 +27,12 @@ app.get("/love", async (req, res) => {
 
   const postBody = { user: actualUser, loved, married, killed };
 
-  console.log("Sending data to Google Sheets:", postBody);
-
   try {
-    const response = await fetch(GOOGLE_SHEETS_URL, {
+    await fetch(GOOGLE_SHEETS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(postBody),
     });
-    const text = await response.text();
-    console.log("Google Sheets Response:", text);
   } catch (err) {
     console.error("Failed to POST to Google Sheets", err);
   }
@@ -52,22 +48,23 @@ app.get("/lovestats", async (req, res) => {
     const response = await fetch(url);
     const text = await response.text();
     res.send(text);
-  } catch (err) {
+  } catch {
     res.send("Could not fetch stats. lepF");
   }
 });
 
 app.get("/bodycount", async (req, res) => {
-  const caller = req.query.caller || req.query.user || "unknown";
-  const target = req.query.bodycount || "";
-
-  const url = `${GOOGLE_SHEETS_URL}?caller=${encodeURIComponent(caller.toLowerCase())}&bodycount=${encodeURIComponent(target.toLowerCase())}`;
+  const user = req.query.user || req.query.caller || "unknown";
+  const caller = req.query.caller || user;
+  const isSelf = !req.query.user;
+  const queryParam = isSelf ? `bodycount=${encodeURIComponent(user.toLowerCase())}` : `bodycount=${encodeURIComponent(caller.toLowerCase())}&target=${encodeURIComponent(user.toLowerCase())}`;
+  const url = `${GOOGLE_SHEETS_URL}?${queryParam}`;
 
   try {
     const response = await fetch(url);
     const text = await response.text();
     res.send(text);
-  } catch (err) {
+  } catch {
     res.send("Could not fetch bodycount. lepF");
   }
 });
@@ -80,7 +77,7 @@ const leaderboardHandler = (type) => async (req, res) => {
     const response = await fetch(url);
     const text = await response.text();
     res.send(text);
-  } catch (err) {
+  } catch {
     res.send(`Could not fetch top ${type} leaderboard. lepF`);
   }
 };
