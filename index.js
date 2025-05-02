@@ -41,7 +41,7 @@ app.get("/love", async (req, res) => {
     console.error("Failed to POST to Google Sheets", err);
   }
 
-  res.send(`${user} loves ${loved} lepFLIRT marries ${married} lepLOVE and kills ${killed} lepW lepG`);
+  res.send(`${user} loves ${loved} lepSUSSY lepFLIRT marries ${married} lepLOVE and kills ${killed} lepW lepG`);
 });
 
 app.get("/lovestats", async (req, res) => {
@@ -58,8 +58,10 @@ app.get("/lovestats", async (req, res) => {
 });
 
 app.get("/bodycount", async (req, res) => {
-  const user = req.query.user || req.query.caller || "unknown";
-  const url = `${GOOGLE_SHEETS_URL}?bodycount=${encodeURIComponent(user.toLowerCase())}`;
+  const caller = req.query.caller || req.query.user || "unknown";
+  const target = req.query.bodycount || "";
+
+  const url = `${GOOGLE_SHEETS_URL}?caller=${encodeURIComponent(caller.toLowerCase())}&bodycount=${encodeURIComponent(target.toLowerCase())}`;
 
   try {
     const response = await fetch(url);
