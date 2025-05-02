@@ -28,7 +28,7 @@ app.get("/love", async (req, res) => {
   // Send to Google Sheets
   fetch(GOOGLE_SHEETS_URL, {
     method: "POST",
-    body: JSON.stringify({ loved, married, killed }),
+    body: JSON.stringify({ loved, married, killed, giver: user }),
     headers: { "Content-Type": "application/json" },
   });
 
@@ -36,18 +36,11 @@ app.get("/love", async (req, res) => {
   res.send(message);
 });
 
-// Root check
-app.get("/", (req, res) => {
-  res.send("Nightbot !Love API is running 🤖");
-});
-
-// !lovestats command
+// !lovestats
 app.get("/lovestats", async (req, res) => {
-  const user = req.query.user;
-  const nightbotUser = req.query["user"] || req.query["caller"]; // fallback for Nightbot default
-  const actualUser = (user || nightbotUser || "unknown").toLowerCase();
-
-  const url = `${GOOGLE_SHEETS_URL}?user=${encodeURIComponent(actualUser)}`;
+  const queryUser = req.query.user || req.query.caller || "";
+  const user = queryUser.toLowerCase().replace(/^@/, "");
+  const url = `${GOOGLE_SHEETS_URL}?user=${encodeURIComponent(user)}`;
 
   try {
     const response = await fetch(url);
@@ -58,7 +51,22 @@ app.get("/lovestats", async (req, res) => {
   }
 });
 
-// Leaderboard helper
+// !bodycount
+app.get("/bodycount", async (req, res) => {
+  const queryUser = req.query.bodycount || req.query.user || req.query.caller || "";
+  const user = queryUser.toLowerCase().replace(/^@/, "");
+  const url = `${GOOGLE_SHEETS_URL}?bodycount=${encodeURIComponent(user)}`;
+
+  try {
+    const response = await fetch(url);
+    const text = await response.text();
+    res.send(text);
+  } catch (err) {
+    res.send("Could not fetch bodycount. lepF");
+  }
+});
+
+// Leaderboards
 const leaderboardHandler = (type) => async (req, res) => {
   const n = Math.min(parseInt(req.query.n) || 1, 5);
   const url = `${GOOGLE_SHEETS_URL}?leaderboard=${type}&n=${n}`;
@@ -72,10 +80,15 @@ const leaderboardHandler = (type) => async (req, res) => {
   }
 };
 
-// !toplove, !topmarry, !topkills
 app.get("/toplove", leaderboardHandler("love"));
 app.get("/topmarry", leaderboardHandler("marry"));
 app.get("/topkills", leaderboardHandler("kill"));
 
+// Root check
+app.get("/", (req, res) => {
+  res.send("Nightbot !Love API is running 🤖");
+});
+
+// Start server
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Running on ${port}`));
