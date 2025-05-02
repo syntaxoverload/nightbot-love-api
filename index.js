@@ -25,16 +25,28 @@ app.get("/love", async (req, res) => {
   const married = await getRandomChatter();
   const killed = await getRandomChatter();
 
+  // Log the data being sent to Google Sheets
+  console.log("Sending data to Google Sheets:", { loved, married, killed });
+
   // Send to Google Sheets
-  fetch(GOOGLE_SHEETS_URL, {
-    method: "POST",
-    body: JSON.stringify({ loved, married, killed, giver: user }),
-    headers: { "Content-Type": "application/json" },
-  });
+  try {
+    const response = await fetch(GOOGLE_SHEETS_URL, {
+      method: "POST",
+      body: JSON.stringify({ loved, married, killed }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    // Log the response from Google Sheets
+    const responseText = await response.text();
+    console.log("Google Sheets Response:", responseText);
+  } catch (error) {
+    console.log("Error sending data to Google Sheets:", error);
+  }
 
   const message = `${user} loves ${loved} lepFLIRT marries ${married} lepLOVE and kills ${killed} lepW lepG`;
   res.send(message);
 });
+
 
 // !lovestats
 app.get("/lovestats", async (req, res) => {
